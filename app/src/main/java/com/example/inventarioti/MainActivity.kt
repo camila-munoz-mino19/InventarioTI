@@ -34,6 +34,7 @@ import com.example.inventarioti.screens.PantallaMovimiento
 import com.example.inventarioti.screens.PantallaHistorial
 import com.example.inventarioti.screens.PantallaAlertas
 import com.example.inventarioti.screens.PantallaCamara
+import com.example.inventarioti.screens.PantallaApiProductos
 import com.example.inventarioti.ui.theme.InventarioTITheme
 import com.example.inventarioti.viewmodel.InventarioViewModel
 
@@ -94,6 +95,9 @@ fun InventarioApp(modelo: InventarioViewModel) {
             verProductos = {
                 pantalla = "productos"
             },
+            verApiProductos = {
+                pantalla = "api"
+            },
             verMovimientos = {
                 pantalla = "movimientos"
             },
@@ -129,6 +133,12 @@ fun InventarioApp(modelo: InventarioViewModel) {
                 modelo.cerrarSesion()
                 mensajePermiso = ""
                 pantalla = "login"
+            }
+        )
+
+        "api" -> PantallaApiProductos(
+            onVolver = {
+                pantalla = "menu"
             }
         )
 
@@ -274,6 +284,7 @@ fun PantallaMenu(
     puedeVerAlertas: Boolean,
     mensajePermiso: String,
     verProductos: () -> Unit,
+    verApiProductos: () -> Unit,
     verMovimientos: () -> Unit,
     verHistorial: () -> Unit,
     verAlertas: () -> Unit,
@@ -350,6 +361,13 @@ fun PantallaMenu(
             texto = "Ver productos",
             onClick = verProductos,
             destacado = true
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        BotonMenu(
+            texto = "Productos en linea",
+            onClick = verApiProductos
         )
 
         if (puedeRegistrar) {

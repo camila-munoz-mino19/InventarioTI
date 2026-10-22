@@ -39,7 +39,7 @@ fun PantallaAlertas(productos: List<Producto>) {
 
         if (productosBajos.isEmpty()) {
 
-            Text("No hay productos con stock bajo")
+            Text("productos con stock bajo")
 
         } else {
 
