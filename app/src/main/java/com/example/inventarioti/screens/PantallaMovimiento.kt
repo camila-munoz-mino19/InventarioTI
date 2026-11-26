@@ -1,18 +1,35 @@
 
 package com.example.inventarioti.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.inventarioti.model.Producto
+import com.example.inventarioti.ui.theme.BordeLavanda
+import com.example.inventarioti.ui.theme.FondoClaro
+import com.example.inventarioti.ui.theme.Lavanda
+import com.example.inventarioti.ui.theme.LavandaSuave
+import com.example.inventarioti.ui.theme.MoradoBoton
+import com.example.inventarioti.ui.theme.MoradoPrincipal
+import com.example.inventarioti.ui.theme.MoradoSuave
+import com.example.inventarioti.ui.theme.TextoMorado
 
 @Composable
 fun PantallaMovimiento(
@@ -20,12 +37,6 @@ fun PantallaMovimiento(
     guardarMovimiento: (String, String, Int) -> String,
     volverMenu: () -> Unit
 ) {
-
-    val morado = Color(0xFF63398F)
-    val moradoBoton = Color(0xFF8159B2)
-    val lavanda = Color(0xFFE3D6F2)
-    val fondo = Color(0xFFFAF7FF)
-
     var sku by remember {
         mutableStateOf(productos.firstOrNull()?.sku ?: "")
     }
@@ -53,135 +64,202 @@ fun PantallaMovimiento(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(fondo)
+            .background(FondoClaro)
             .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
-
         Text(
             text = "Registrar movimiento",
             style = MaterialTheme.typography.headlineSmall,
-            color = morado
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Seleccionar producto",
-            color = morado
+            color = MoradoPrincipal
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Box {
+        Text(
+            text = "Administra las entradas y salidas de productos",
+            style = MaterialTheme.typography.bodyMedium,
+            color = TextoMorado
+        )
 
-            OutlinedButton(
-                onClick = {
-                    expandido = true
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, Color(0xFFC6B0E1)),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = morado,
-                    containerColor = Color.White
-                )
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = LavandaSuave
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp)
             ) {
                 Text(
-                    text = productoSeleccionado?.nombre ?: "Producto"
+                    text = "Producto",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MoradoPrincipal
                 )
-            }
 
-            DropdownMenu(
-                expanded = expandido,
-                onDismissRequest = {
-                    expandido = false
-                }
-            ) {
+                Spacer(modifier = Modifier.height(12.dp))
 
-                productos.forEach { producto ->
-
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = producto.nombre,
-                                color = morado
-                            )
-                        },
+                Box {
+                    OutlinedButton(
                         onClick = {
-                            sku = producto.sku
+                            expandido = true
+                        },
+                        enabled = productos.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, BordeLavanda),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.White,
+                            contentColor = MoradoPrincipal
+                        )
+                    ) {
+                        Text(
+                            text = productoSeleccionado?.nombre
+                                ?: "Seleccionar producto"
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = expandido,
+                        onDismissRequest = {
                             expandido = false
-                            mensaje = ""
                         }
+                    ) {
+                        productos.forEach { producto ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = producto.nombre,
+                                        color = TextoMorado
+                                    )
+                                },
+                                onClick = {
+                                    sku = producto.sku
+                                    expandido = false
+                                    mensaje = ""
+                                }
+                            )
+                        }
+                    }
+                }
+
+                if (productos.isEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "No hay productos disponibles",
+                        color = MaterialTheme.colorScheme.error
                     )
+                }
+
+                AnimatedVisibility(
+                    visible = productoSeleccionado != null,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Column {
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = "Stock disponible: ${productoSeleccionado?.cantidad ?: 0}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MoradoPrincipal
+                        )
+                    }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Text(
             text = "Tipo de movimiento",
-            color = morado
+            style = MaterialTheme.typography.titleMedium,
+            color = MoradoPrincipal
         )
 
-        Row {
+        Spacer(modifier = Modifier.height(12.dp))
 
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             RadioButton(
                 selected = tipo == "Entrada",
                 onClick = {
                     tipo = "Entrada"
+                    mensaje = ""
                 },
                 colors = RadioButtonDefaults.colors(
-                    selectedColor = moradoBoton,
-                    unselectedColor = Color(0xFF9D83BC)
+                    selectedColor = MoradoBoton,
+                    unselectedColor = MoradoSuave
                 )
             )
 
             Text(
                 text = "Entrada",
-                color = morado,
-                modifier = Modifier.padding(top = 12.dp)
+                color = TextoMorado,
+                style = MaterialTheme.typography.bodyLarge
             )
+
+            Spacer(modifier = Modifier.width(24.dp))
 
             RadioButton(
                 selected = tipo == "Salida",
                 onClick = {
                     tipo = "Salida"
+                    mensaje = ""
                 },
                 colors = RadioButtonDefaults.colors(
-                    selectedColor = moradoBoton,
-                    unselectedColor = Color(0xFF9D83BC)
+                    selectedColor = MoradoBoton,
+                    unselectedColor = MoradoSuave
                 )
             )
 
             Text(
                 text = "Salida",
-                color = morado,
-                modifier = Modifier.padding(top = 12.dp)
+                color = TextoMorado,
+                style = MaterialTheme.typography.bodyLarge
             )
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Cantidad",
+            style = MaterialTheme.typography.titleMedium,
+            color = MoradoPrincipal
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedTextField(
             value = cantidad,
             onValueChange = {
-                cantidad = it
-                mensaje = ""
+                if (it.all { caracter -> caracter.isDigit() }) {
+                    cantidad = it
+                    mensaje = ""
+                }
             },
             label = {
-                Text("Cantidad")
+                Text("Ingresa la cantidad")
             },
             singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number
+            ),
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = moradoBoton,
-                unfocusedBorderColor = Color(0xFFC6B0E1),
-                focusedLabelColor = morado,
-                unfocusedLabelColor = morado,
-                cursorColor = moradoBoton,
+                focusedBorderColor = MoradoBoton,
+                unfocusedBorderColor = BordeLavanda,
+                focusedLabelColor = MoradoPrincipal,
+                unfocusedLabelColor = MoradoPrincipal,
+                cursorColor = MoradoBoton,
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White
             )
@@ -189,46 +267,68 @@ fun PantallaMovimiento(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        if (mensaje.isNotEmpty()) {
-
-            Text(
-                text = mensaje,
-                color = if (mensaje == "Movimiento registrado") {
-                    morado
-                } else {
-                    MaterialTheme.colorScheme.error
-                }
-            )
+        AnimatedVisibility(
+            visible = mensaje.isNotEmpty(),
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = LavandaSuave
+                )
+            ) {
+                Text(
+                    text = mensaje,
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (mensaje == "Movimiento registrado") {
+                        MoradoPrincipal
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    }
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Button(
             onClick = {
-
                 val numero = cantidad.toIntOrNull()
 
-                if (numero == null) {
-                    mensaje = "Ingresa una cantidad valida"
+                if (productoSeleccionado == null) {
+                    mensaje = "Selecciona un producto"
+                } else if (numero == null || numero <= 0) {
+                    mensaje = "Ingresa una cantidad válida mayor que cero"
                 } else {
-
-                    mensaje = guardarMovimiento(sku, tipo, numero)
+                    mensaje = guardarMovimiento(
+                        sku,
+                        tipo,
+                        numero
+                    )
 
                     if (mensaje == "Movimiento registrado") {
                         cantidad = ""
                     }
                 }
             },
+            enabled = productos.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp),
+                .height(54.dp),
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = moradoBoton,
+                containerColor = MoradoBoton,
                 contentColor = Color.White
             )
         ) {
-            Text("Guardar movimiento")
+            Text(
+                text = "Guardar movimiento",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -237,15 +337,18 @@ fun PantallaMovimiento(
             onClick = volverMenu,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp),
+                .height(54.dp),
             shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, Color(0xFFC6B0E1)),
+            border = BorderStroke(1.dp, BordeLavanda),
             colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = lavanda,
-                contentColor = morado
+                containerColor = Lavanda,
+                contentColor = MoradoPrincipal
             )
         ) {
-            Text("Volver al menu")
+            Text(
+                text = "Volver al menú",
+                style = MaterialTheme.typography.labelLarge
+            )
         }
     }
 }
