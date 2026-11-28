@@ -26,7 +26,14 @@ class InventarioViewModel(application: Application) : AndroidViewModel(applicati
         private set
 
     init {
+        actualizarDatos()
+    }
+
+    private fun actualizarDatos() {
+        productos.clear()
         productos.addAll(baseDatos.obtenerProductos())
+
+        movimientos.clear()
         movimientos.addAll(baseDatos.obtenerMovimientos())
     }
 
@@ -87,15 +94,42 @@ class InventarioViewModel(application: Application) : AndroidViewModel(applicati
             return "No tienes permiso para registrar movimientos"
         }
 
-        val resultado = baseDatos.guardarMovimiento(sku, tipo, cantidad)
+        val resultado = baseDatos.guardarMovimiento(
+            sku,
+            tipo,
+            cantidad
+        )
 
         if (resultado == "Movimiento registrado") {
+            actualizarDatos()
+        }
 
-            productos.clear()
-            productos.addAll(baseDatos.obtenerProductos())
+        return resultado
+    }
 
-            movimientos.clear()
-            movimientos.addAll(baseDatos.obtenerMovimientos())
+    fun guardarMovimientoConfirmadoAws(
+        sku: String,
+        tipo: String,
+        cantidad: Int,
+        stockAnterior: Int,
+        stockNuevo: Int
+    ): String {
+
+        if (!puedeRegistrar()) {
+            return "No tienes permiso para registrar movimientos"
+        }
+
+        val resultado = baseDatos.guardarMovimientoConfirmadoAws(
+            sku = sku,
+            tipo = tipo,
+            cantidad = cantidad,
+            stockAnterior = stockAnterior,
+            stockNuevo = stockNuevo,
+            usuario = usuarioActual
+        )
+
+        if (resultado == "Movimiento registrado") {
+            actualizarDatos()
         }
 
         return resultado

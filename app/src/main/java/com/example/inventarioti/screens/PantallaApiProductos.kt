@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.inventarioti.data.ApiProductos
 import com.example.inventarioti.data.ProductoApi
@@ -31,12 +32,16 @@ import com.example.inventarioti.ui.theme.TextoMorado
 @Composable
 fun PantallaApiProductos(onVolver: () -> Unit) {
 
+    var clave by remember {
+        mutableStateOf("")
+    }
+
     var productos by remember {
         mutableStateOf<List<ProductoApi>>(emptyList())
     }
 
     var mensaje by remember {
-        mutableStateOf("Presiona el botón para consultar productos")
+        mutableStateOf("Ingresa tu clave para consultar AWS")
     }
 
     var cargando by remember {
@@ -53,13 +58,13 @@ fun PantallaApiProductos(onVolver: () -> Unit) {
     ) {
 
         Text(
-            text = "Productos desde Internet",
+            text = "Productos desde AWS",
             style = MaterialTheme.typography.headlineSmall,
             color = MoradoPrincipal
         )
 
         Text(
-            text = "Consulta de productos utilizando una API REST",
+            text = "Consulta de productos almacenados en Amazon DynamoDB",
             style = MaterialTheme.typography.bodyMedium,
             color = TextoMorado
         )
@@ -73,40 +78,73 @@ fun PantallaApiProductos(onVolver: () -> Unit) {
         ) {
 
             Column(
-                modifier = Modifier.padding(20.dp)
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
 
                 Text(
-                    text = "Consulta en línea",
+                    text = "Conexión con AWS",
                     style = MaterialTheme.typography.titleMedium,
                     color = MoradoPrincipal
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
                 Text(
-                    text = "Obtén productos y consulta su stock desde un servicio externo.",
+                    text = "Consulta el inventario almacenado en la nube mediante nuestra API REST.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextoMorado
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                OutlinedTextField(
+                    value = clave,
+                    onValueChange = {
+                        clave = it
+                    },
+                    label = {
+                        Text("Clave de acceso AWS")
+                    },
+                    placeholder = {
+                        Text("Ingresa tu clave")
+                    },
+                    visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MoradoPrincipal,
+                        focusedLabelColor = MoradoPrincipal
+                    )
+                )
+
+                Text(
+                    text = "La clave se utiliza para realizar la consulta y no se guarda en el teléfono.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextoMorado
+                )
 
                 Button(
                     onClick = {
-                        cargando = true
-                        mensaje = "Consultando productos..."
-                        productos = emptyList()
 
-                        ApiProductos.consultarProductos { lista, error ->
+                        if (clave.isBlank()) {
 
-                            cargando = false
-                            productos = lista
+                            mensaje = "Debes ingresar la clave de acceso"
 
-                            mensaje = when {
-                                error != null -> error
-                                lista.isEmpty() -> "No se encontraron productos"
-                                else -> "Productos encontrados: ${lista.size}"
+                        } else {
+
+                            cargando = true
+                            mensaje = "Consultando productos en AWS..."
+                            productos = emptyList()
+
+                            ApiProductos.consultarProductos(
+                                clave = clave
+                            ) { lista, error ->
+
+                                cargando = false
+                                productos = lista
+
+                                mensaje = when {
+                                    error != null -> error
+                                    lista.isEmpty() -> "No se encontraron productos en AWS"
+                                    else -> "Productos encontrados: ${lista.size}"
+                                }
                             }
                         }
                     },
@@ -120,11 +158,12 @@ fun PantallaApiProductos(onVolver: () -> Unit) {
                         contentColor = Color.White
                     )
                 ) {
+
                     Text(
                         text = if (cargando) {
-                            "Consultando..."
+                            "Consultando AWS..."
                         } else {
-                            "Consultar API"
+                            "Consultar productos AWS"
                         },
                         style = MaterialTheme.typography.labelLarge
                     )
@@ -138,6 +177,7 @@ fun PantallaApiProductos(onVolver: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
+
                 CircularProgressIndicator(
                     color = MoradoBoton
                 )
@@ -163,7 +203,7 @@ fun PantallaApiProductos(onVolver: () -> Unit) {
         if (productos.isNotEmpty()) {
 
             Text(
-                text = "Resultados de la consulta",
+                text = "Productos almacenados en AWS",
                 style = MaterialTheme.typography.titleLarge,
                 color = MoradoPrincipal
             )
@@ -173,7 +213,9 @@ fun PantallaApiProductos(onVolver: () -> Unit) {
             TarjetaProductoApi(producto)
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(
+            modifier = Modifier.height(8.dp)
+        )
 
         OutlinedButton(
             onClick = onVolver,
@@ -187,6 +229,7 @@ fun PantallaApiProductos(onVolver: () -> Unit) {
                 contentColor = MoradoPrincipal
             )
         ) {
+
             Text(
                 text = "Volver al menú",
                 style = MaterialTheme.typography.labelLarge
@@ -237,13 +280,17 @@ fun TarjetaProductoApi(producto: ProductoApi) {
                     color = MoradoPrincipal
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(
+                    modifier = Modifier.height(14.dp)
+                )
 
                 HorizontalDivider(
                     color = BordeLavanda
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(
+                    modifier = Modifier.height(14.dp)
+                )
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),

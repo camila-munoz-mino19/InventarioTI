@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.inventarioti.model.Producto
 import com.example.inventarioti.ui.theme.BordeLavanda
@@ -35,8 +36,16 @@ import com.example.inventarioti.ui.theme.TextoMorado
 fun PantallaMovimiento(
     productos: List<Producto>,
     guardarMovimiento: (String, String, Int) -> String,
-    volverMenu: () -> Unit
+    volverMenu: () -> Unit,
+    guardarMovimientoAws: ((
+        String,
+        String,
+        Int,
+        String,
+        (String) -> Unit
+    ) -> Unit)? = null
 ) {
+
     var sku by remember {
         mutableStateOf(productos.firstOrNull()?.sku ?: "")
     }
@@ -49,8 +58,16 @@ fun PantallaMovimiento(
         mutableStateOf("")
     }
 
+    var claveAws by remember {
+        mutableStateOf("")
+    }
+
     var mensaje by remember {
         mutableStateOf("")
+    }
+
+    var cargando by remember {
+        mutableStateOf(false)
     }
 
     var expandido by remember {
@@ -68,6 +85,7 @@ fun PantallaMovimiento(
             .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
+
         Text(
             text = "Registrar movimiento",
             style = MaterialTheme.typography.headlineSmall,
@@ -91,9 +109,11 @@ fun PantallaMovimiento(
                 containerColor = LavandaSuave
             )
         ) {
+
             Column(
                 modifier = Modifier.padding(20.dp)
             ) {
+
                 Text(
                     text = "Producto",
                     style = MaterialTheme.typography.titleMedium,
@@ -103,11 +123,12 @@ fun PantallaMovimiento(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Box {
+
                     OutlinedButton(
                         onClick = {
                             expandido = true
                         },
-                        enabled = productos.isNotEmpty(),
+                        enabled = productos.isNotEmpty() && !cargando,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         border = BorderStroke(1.dp, BordeLavanda),
@@ -116,6 +137,7 @@ fun PantallaMovimiento(
                             contentColor = MoradoPrincipal
                         )
                     ) {
+
                         Text(
                             text = productoSeleccionado?.nombre
                                 ?: "Seleccionar producto"
@@ -128,7 +150,9 @@ fun PantallaMovimiento(
                             expandido = false
                         }
                     ) {
+
                         productos.forEach { producto ->
+
                             DropdownMenuItem(
                                 text = {
                                     Text(
@@ -146,21 +170,14 @@ fun PantallaMovimiento(
                     }
                 }
 
-                if (productos.isEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "No hay productos disponibles",
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-
                 AnimatedVisibility(
                     visible = productoSeleccionado != null,
                     enter = fadeIn() + expandVertically(),
                     exit = fadeOut() + shrinkVertically()
                 ) {
+
                     Column {
+
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
@@ -188,12 +205,16 @@ fun PantallaMovimiento(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+
             RadioButton(
                 selected = tipo == "Entrada",
                 onClick = {
-                    tipo = "Entrada"
-                    mensaje = ""
+                    if (!cargando) {
+                        tipo = "Entrada"
+                        mensaje = ""
+                    }
                 },
+                enabled = !cargando,
                 colors = RadioButtonDefaults.colors(
                     selectedColor = MoradoBoton,
                     unselectedColor = MoradoSuave
@@ -202,8 +223,7 @@ fun PantallaMovimiento(
 
             Text(
                 text = "Entrada",
-                color = TextoMorado,
-                style = MaterialTheme.typography.bodyLarge
+                color = TextoMorado
             )
 
             Spacer(modifier = Modifier.width(24.dp))
@@ -211,9 +231,12 @@ fun PantallaMovimiento(
             RadioButton(
                 selected = tipo == "Salida",
                 onClick = {
-                    tipo = "Salida"
-                    mensaje = ""
+                    if (!cargando) {
+                        tipo = "Salida"
+                        mensaje = ""
+                    }
                 },
+                enabled = !cargando,
                 colors = RadioButtonDefaults.colors(
                     selectedColor = MoradoBoton,
                     unselectedColor = MoradoSuave
@@ -222,8 +245,7 @@ fun PantallaMovimiento(
 
             Text(
                 text = "Salida",
-                color = TextoMorado,
-                style = MaterialTheme.typography.bodyLarge
+                color = TextoMorado
             )
         }
 
@@ -245,6 +267,7 @@ fun PantallaMovimiento(
                     mensaje = ""
                 }
             },
+            enabled = !cargando,
             label = {
                 Text("Ingresa la cantidad")
             },
@@ -258,12 +281,63 @@ fun PantallaMovimiento(
                 focusedBorderColor = MoradoBoton,
                 unfocusedBorderColor = BordeLavanda,
                 focusedLabelColor = MoradoPrincipal,
-                unfocusedLabelColor = MoradoPrincipal,
-                cursorColor = MoradoBoton,
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
+                cursorColor = MoradoBoton
             )
         )
+
+        if (guardarMovimientoAws != null) {
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = LavandaSuave
+                )
+            ) {
+
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+
+                    Text(
+                        text = "Sincronización con AWS",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MoradoPrincipal
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "El movimiento se confirmará en AWS antes de guardarse en SQLite.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextoMorado
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = claveAws,
+                        onValueChange = {
+                            claveAws = it
+                            mensaje = ""
+                        },
+                        enabled = !cargando,
+                        label = {
+                            Text("Clave de acceso AWS")
+                        },
+                        visualTransformation = PasswordVisualTransformation(),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MoradoPrincipal,
+                            focusedLabelColor = MoradoPrincipal
+                        )
+                    )
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(20.dp))
 
@@ -272,6 +346,7 @@ fun PantallaMovimiento(
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically()
         ) {
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -279,6 +354,7 @@ fun PantallaMovimiento(
                     containerColor = LavandaSuave
                 )
             ) {
+
                 Text(
                     text = mensaje,
                     modifier = Modifier.padding(16.dp),
@@ -294,15 +370,77 @@ fun PantallaMovimiento(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        if (cargando) {
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+
+                CircularProgressIndicator(
+                    color = MoradoBoton
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
         Button(
             onClick = {
+
                 val numero = cantidad.toIntOrNull()
 
                 if (productoSeleccionado == null) {
+
                     mensaje = "Selecciona un producto"
+
                 } else if (numero == null || numero <= 0) {
+
                     mensaje = "Ingresa una cantidad válida mayor que cero"
+
+                } else if (
+                    tipo == "Salida" &&
+                    numero > productoSeleccionado.cantidad
+                ) {
+
+                    mensaje = "Stock insuficiente"
+
+                } else if (
+                    tipo == "Entrada" &&
+                    numero > Int.MAX_VALUE - productoSeleccionado.cantidad
+                ) {
+
+                    mensaje = "Cantidad demasiado grande"
+
+                } else if (guardarMovimientoAws != null) {
+
+                    if (claveAws.isBlank()) {
+
+                        mensaje = "Ingresa tu clave de AWS"
+
+                    } else {
+
+                        cargando = true
+                        mensaje = "Confirmando movimiento en AWS..."
+
+                        guardarMovimientoAws(
+                            sku,
+                            tipo,
+                            numero,
+                            claveAws
+                        ) { resultado ->
+
+                            cargando = false
+                            mensaje = resultado
+
+                            if (resultado == "Movimiento registrado") {
+                                cantidad = ""
+                            }
+                        }
+                    }
+
                 } else {
+
                     mensaje = guardarMovimiento(
                         sku,
                         tipo,
@@ -314,7 +452,7 @@ fun PantallaMovimiento(
                     }
                 }
             },
-            enabled = productos.isNotEmpty(),
+            enabled = productos.isNotEmpty() && !cargando,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp),
@@ -324,8 +462,13 @@ fun PantallaMovimiento(
                 contentColor = Color.White
             )
         ) {
+
             Text(
-                text = "Guardar movimiento",
+                text = if (cargando) {
+                    "Guardando..."
+                } else {
+                    "Guardar movimiento"
+                },
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold
             )
@@ -335,6 +478,7 @@ fun PantallaMovimiento(
 
         OutlinedButton(
             onClick = volverMenu,
+            enabled = !cargando,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp),
@@ -345,6 +489,7 @@ fun PantallaMovimiento(
                 contentColor = MoradoPrincipal
             )
         ) {
+
             Text(
                 text = "Volver al menú",
                 style = MaterialTheme.typography.labelLarge

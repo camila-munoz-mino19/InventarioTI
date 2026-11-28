@@ -102,6 +102,12 @@ class BaseDatos(context: Context) :
         return lista
     }
 
+    fun obtenerProductoPorSku(sku: String): Producto? {
+        return obtenerProductos().find {
+            it.sku == sku
+        }
+    }
+
     fun obtenerMovimientos(): List<Movimiento> {
 
         val lista = mutableListOf<Movimiento>()
@@ -236,5 +242,114 @@ class BaseDatos(context: Context) :
         }
 
         return "Movimiento registrado"
+    }
+
+    fun guardarMovimientoConfirmadoAws(
+        sku: String,
+        tipo: String,
+        cantidad: Int,
+        stockAnterior: Int,
+        stockNuevo: Int,
+        usuario: String
+    ): String {
+
+        if (tipo != "Entrada" && tipo != "Salida") {
+            return "Tipo de movimiento incorrecto"
+        }
+
+        if (cantidad <= 0 || stockAnterior < 0 || stockNuevo < 0) {
+            return "Cantidad incorrecta"
+        }
+
+        val diferencia = if (tipo == "Entrada") {
+            cantidad.toLong()
+        } else {
+            -cantidad.toLong()
+        }
+
+        if (stockAnterior.toLong() + diferencia != stockNuevo.toLong()) {
+            return "El stock confirmado no coincide con el movimiento"
+        }
+
+        val db = writableDatabase
+        var resultado = "No se pudo registrar el movimiento"
+
+        db.beginTransaction()
+
+        try {
+
+            val cursor = db.rawQuery(
+                "SELECT nombre FROM productos WHERE sku = ? AND cantidad = ?",
+                arrayOf(sku, stockAnterior.toString())
+            )
+
+            var nombre: String? = null
+
+            cursor.use {
+                if (it.moveToFirst()) {
+                    nombre = it.getString(0)
+                }
+            }
+
+            if (nombre == null) {
+
+                resultado = "El producto o stock local no coincide con AWS"
+
+            } else {
+
+                val datosProducto = ContentValues()
+                datosProducto.put("cantidad", stockNuevo)
+
+                val actualizado = db.update(
+                    "productos",
+                    datosProducto,
+                    "sku = ? AND cantidad = ?",
+                    arrayOf(sku, stockAnterior.toString())
+                )
+
+                if (actualizado != 1) {
+
+                    resultado = "No se pudo actualizar el stock local"
+
+                } else {
+
+                    val fecha = SimpleDateFormat(
+                        "dd/MM/yyyy HH:mm",
+                        Locale.getDefault()
+                    ).format(Date())
+
+                    val datosMovimiento = ContentValues()
+                    datosMovimiento.put("sku", sku)
+                    datosMovimiento.put("producto", nombre)
+                    datosMovimiento.put("tipo", tipo)
+                    datosMovimiento.put("cantidad", cantidad)
+                    datosMovimiento.put("fecha", fecha)
+                    datosMovimiento.put("usuario", usuario)
+
+                    val guardado = db.insert(
+                        "movimientos",
+                        null,
+                        datosMovimiento
+                    )
+
+                    if (guardado != -1L) {
+                        db.setTransactionSuccessful()
+                        resultado = "Movimiento registrado"
+                    } else {
+                        resultado = "No se pudo guardar el historial local"
+                    }
+                }
+            }
+
+        } catch (e: Exception) {
+
+            resultado = "Error al guardar los datos locales"
+
+        } finally {
+
+            db.endTransaction()
+        }
+
+        return resultado
     }
 }
